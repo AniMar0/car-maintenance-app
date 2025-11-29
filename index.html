@@ -149,8 +149,8 @@
 
          <!-- 3. User Settings Modal -->
         <div id="userSettings" class="absolute top-16 right-4 w-64 bg-white rounded-lg shadow-xl p-4 border border-gray-100 hidden z-10">
-            <h3 class="font-bold text-gray-800 mb-3 border-b pb-2">Gérer les Comptes</h3>
-            <p class="text-xs text-gray-500 mb-3">Sauvegardez ou chargez votre base d'utilisateurs.</p>
+            <h3 class="font-bold text-gray-800 mb-3 border-b pb-2">Gérer les Comptes Utilisateurs</h3>
+            <p class="text-xs text-gray-500 mb-3">Sauvegardez ou chargez votre base d'utilisateurs. <span class="font-bold text-red-500">Réservé aux Admins.</span></p>
             <button onclick="exportUserFile()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full mb-2">
                 Exporter users.xlsx
             </button>
@@ -164,6 +164,12 @@
 
         <!-- 4. Main Application View (Hidden by default) -->
         <div id="appView" class="hidden">
+            <!-- Welcome Header -->
+            <div class="mb-6 p-4 bg-white rounded-xl shadow-md border-l-4 border-blue-500">
+                <p class="text-lg font-semibold text-gray-800" id="appWelcomeHeader">Bienvenue, Utilisateur !</p>
+                <p class="text-sm text-gray-500" id="userRoleDisplay"></p>
+            </div>
+            
             <!-- File Operations Card -->
             <div class="bg-white rounded-xl shadow-md p-6 mb-8 border-t-4 border-blue-600">
                 <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
@@ -199,7 +205,7 @@
                     </div>
 
                     <div class="w-full md:w-auto border-l-2 border-gray-100 pl-4 ml-4">
-                         <label class="block text-sm text-gray-600 mb-2 font-bold text-green-700">Sauvegarder :</label>
+                         <label class="block text-sm text-gray-600 mb-2 font-bold text-green-700">Sauvegarder (Admin seul):</label>
                         <button onclick="exportToExcel()" id="exportBtn" disabled class="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-200 flex items-center gap-2 w-full justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
@@ -323,6 +329,8 @@
         let usersData = []; // Data for 'users.xlsx'
         let currentFileName = "Donnees_Log.xlsx";
         let isAuthenticated = false;
+        let currentUserRole = null; // NEW: Stores the authenticated user's role
+        let currentUserName = null; // NEW: Stores the authenticated user's name
         
         // --- DOM Elements ---
         const fileInput = document.getElementById('fileUpload');
@@ -343,6 +351,8 @@
         const userSettingsBtn = document.getElementById('userSettingsBtn');
         const userSettings = document.getElementById('userSettings');
         const userCountStatus = document.getElementById('userCountStatus');
+        const appWelcomeHeader = document.getElementById('appWelcomeHeader');
+        const userRoleDisplay = document.getElementById('userRoleDisplay');
 
 
         // --- Event Listeners ---
@@ -352,16 +362,19 @@
 
 
         // --- Initial Setup ---
-        // Initialize usersData as empty on load, allowing immediate registration.
         window.onload = function() {
             updateUserCountStatus();
             showView('login');
         };
         
-        // Function to toggle user settings menu
+        // Function to toggle user settings menu (Admin only)
         function toggleUserSettings(event) {
-            userSettings.classList.toggle('hidden');
-            event.stopPropagation(); // Prevent document click from immediately closing
+            if (currentUserRole && currentUserRole.toLowerCase() === 'admin') {
+                userSettings.classList.toggle('hidden');
+                event.stopPropagation(); // Prevent document click from immediately closing
+            } else {
+                showToast("Accès refusé. Vous n'êtes pas administrateur.");
+            }
         }
 
         // Close user settings when clicking outside
@@ -378,8 +391,7 @@
             registerView.classList.add('hidden');
             appView.classList.add('hidden');
             logoutBtn.classList.add('hidden');
-            userSettingsBtn.classList.add('hidden');
-            userSettings.classList.add('hidden'); // Hide settings when switching views
+            userSettingsBtn.classList.add('hidden'); // Hidden by default, toggled by checkAccess
 
             if (viewName === 'login') {
                 loginView.classList.remove('hidden');
@@ -388,11 +400,13 @@
             } else if (viewName === 'app') {
                 appView.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
-                userSettingsBtn.classList.remove('hidden');
+                
+                checkAccess(); // Check and apply role permissions
+                
                 // Ensure main app buttons are correctly enabled/disabled based on data status
                 if (mainData.length === 0) {
                     addBtn.disabled = true;
-                    exportBtn.disabled = true;
+                    exportBtn.disabled = true; // Disabled by checkAccess for non-admins
                     statusMsg.innerText = "Aucun fichier de données chargé.";
                 } else {
                     enableApp();
@@ -458,7 +472,8 @@
                 "Nom": nom,
                 "Prénom": prenom,
                 "Téléphone": phone,
-                "Société": societe
+                "Société": societe,
+                "Role": "User" // NEW: Default role for registration is 'User'
             };
 
             usersData.push(newUser);
@@ -480,8 +495,11 @@
 
             if (user) {
                 isAuthenticated = true;
+                currentUserRole = user['Role'] ? user['Role'].trim() : 'User'; // Get and store the role, default to 'User'
+                currentUserName = user['Prénom'] || user['Nom'] || user['Email']; // Store the name for display
+
                 showView('app');
-                showToast(`Bienvenue, ${user['Prénom']}!`);
+                showToast(`Bienvenue, ${currentUserName}! Rôle: ${currentUserRole}.`);
             } else {
                 showToast("Email ou mot de passe incorrect. Assurez-vous que les comptes sont chargés.");
             }
@@ -489,6 +507,8 @@
         
         function logout() {
             isAuthenticated = false;
+            currentUserRole = null; // Clear role on logout
+            currentUserName = null; // Clear name on logout
             showView('login');
             // Reset main data state on logout 
             mainData = []; 
@@ -505,10 +525,15 @@
                 showToast("Aucun compte utilisateur à sauvegarder !");
                 return;
             }
+            if (currentUserRole.toLowerCase() !== 'admin') {
+                showToast("Accès refusé. Seuls les administrateurs peuvent exporter les comptes.");
+                return;
+            }
+            
             const worksheet = XLSX.utils.json_to_sheet(usersData);
             
             // Define header keys explicitly to ensure order
-            const header = ["Email", "Password", "Nom", "Prénom", "Téléphone", "Société"];
+            const header = ["Email", "Password", "Nom", "Prénom", "Téléphone", "Société", "Role"]; // UPDATED: Added Role
             XLSX.utils.sheet_to_json(worksheet, { header: header });
 
             const wscols = [
@@ -517,7 +542,8 @@
                 {wch: 20}, // Nom
                 {wch: 20}, // Prénom
                 {wch: 15}, // Téléphone
-                {wch: 20}  // Société
+                {wch: 20},  // Société
+                {wch: 10}   // Role (New)
             ];
             worksheet['!cols'] = wscols;
 
@@ -529,6 +555,31 @@
             userSettings.classList.add('hidden');
         }
 
+        // --- ACCESS CONTROL ---
+        function checkAccess() {
+            const isAdmin = currentUserRole && currentUserRole.toLowerCase() === 'admin';
+            
+            // 1. User Settings (Manage Accounts) - Admin Only
+            userSettingsBtn.classList.toggle('hidden', !isAdmin);
+            
+            // 2. Export Button (Export Main Data) - Admin Only
+            // The button will be disabled/enabled based on data existence in enableApp,
+            // but for non-admins, it must remain disabled regardless of data.
+            exportBtn.disabled = !isAdmin || mainData.length === 0;
+
+            // 3. Update Welcome Message
+            appWelcomeHeader.innerText = `Bienvenue, ${currentUserName} !`;
+            userRoleDisplay.innerText = `Votre rôle : ${currentUserRole}`;
+            
+            if (isAdmin) {
+                userRoleDisplay.classList.remove('text-gray-500');
+                userRoleDisplay.classList.add('text-red-600', 'font-bold');
+            } else {
+                userRoleDisplay.classList.remove('text-red-600', 'font-bold');
+                userRoleDisplay.classList.add('text-gray-500');
+            }
+        }
+        
         // --- MAIN APP LOGIC (modified to use mainData) ---
 
         // 1. Initialize Empty Template with new Headers
@@ -656,15 +707,21 @@
             document.getElementById('maintenanceForm').reset();
             
             renderTable();
-            showToast("Ajouté ! N'oubliez pas d'Exporter le fichier de données.");
+            showToast("Ajouté ! N'oubliez pas d'Exporter le fichier de données (Admin seul).");
             
-            // Highlight export button
-            exportBtn.classList.add('ring-4', 'ring-green-300');
-            setTimeout(() => exportBtn.classList.remove('ring-4', 'ring-green-300'), 2000);
+            // Highlight export button only for Admin
+            if (currentUserRole && currentUserRole.toLowerCase() === 'admin') {
+                exportBtn.classList.add('ring-4', 'ring-green-300');
+                setTimeout(() => exportBtn.classList.remove('ring-4', 'ring-green-300'), 2000);
+            }
         }
 
-        // 5. Export / Save Excel (Main Data)
+        // 5. Export / Save Excel (Main Data) - Admin Only
         function exportToExcel() {
+            if (currentUserRole && currentUserRole.toLowerCase() !== 'admin') {
+                showToast("Accès refusé. Seuls les administrateurs peuvent exporter les données.");
+                return;
+            }
             if (mainData.length === 0) {
                 showToast("Aucune donnée à sauvegarder !");
                 return;
@@ -692,7 +749,9 @@
         // --- Helpers ---
         function enableApp() {
             addBtn.disabled = false;
-            exportBtn.disabled = false;
+            // Re-check access to set export button correctly
+            checkAccess(); 
+            
             statusMsg.classList.remove('text-gray-500');
             statusMsg.classList.add('text-green-600', 'font-semibold');
         }
