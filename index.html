@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="fr" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suivi des Frais - Authentification</title>
+    
+    <!-- Google Fonts: Cairo -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SheetJS (XLSX) Library -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #c1c1c1; 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8; 
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+
+    <!-- Navbar (Always Visible) -->
+    <nav class="bg-blue-900 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <h1 class="text-2xl font-bold" id="appTitle">Gestion des Coûts</h1>
+            </div>
+            <!-- Logout Button (Only visible if authenticated) -->
+            <div class="flex items-center gap-4">
+                 <button id="userSettingsBtn" onclick="toggleUserSettings(event)" class="hidden bg-gray-700 hover:bg-gray-600 text-white font-semibold py-1 px-3 rounded-lg transition duration-200 text-sm">
+                    Gérer Comptes
+                </button>
+                <button id="logoutBtn" onclick="logout()" class="hidden bg-red-600 hover:bg-red-700 text-white font-semibold py-1 px-4 rounded-lg transition duration-200 text-sm">
+                    Déconnexion
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        
+        <!-- --- AUTH VIEWS START --- -->
+
+        <!-- 1. Login View -->
+        <div id="loginView" class="max-w-md mx-auto bg-white rounded-xl shadow-2xl p-8 border-t-8 border-blue-600">
+            <h2 class="text-3xl font-bold mb-6 text-center text-blue-800">Connexion</h2>
+            
+            <form id="loginForm" onsubmit="attemptLogin(event)">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Professionnel</label>
+                        <input type="email" id="loginEmail" placeholder="votre.nom@societe.ma" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+                        <input type="password" id="loginPassword" placeholder="********" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                    </div>
+
+                    <button type="submit" id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-lg shadow transition duration-200 mt-4">
+                        Se Connecter
+                    </button>
+                </div>
+            </form>
+            
+            <p class="mt-6 text-center text-sm">
+                Pas encore de compte ? 
+                <a href="#" onclick="showView('register')" class="text-blue-600 hover:text-blue-800 font-semibold">S'inscrire ici</a>
+            </p>
+
+             <div class="mt-8 pt-4 border-t border-gray-200">
+                <p class="text-sm text-gray-600 mb-3">Si vous avez déjà un fichier <span class="font-mono bg-yellow-100 px-1 rounded">users.xlsx</span>, chargez-le ici :</p>
+                <label for="userFileUpload" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full block text-center cursor-pointer">
+                    Charger les Comptes Existants
+                </label>
+                <input type="file" id="userFileUpload" accept=".xlsx, .xls" class="hidden" onchange="handleUserFileUpload(event)"/>
+            </div>
+        </div>
+
+        <!-- 2. Register View -->
+        <div id="registerView" class="max-w-xl mx-auto bg-white rounded-xl shadow-2xl p-8 border-t-8 border-green-600 hidden">
+            <h2 class="text-3xl font-bold mb-6 text-center text-green-800">Créer un Compte</h2>
+            
+            <form id="registerForm" onsubmit="attemptRegister(event)">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Nom -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                        <input type="text" id="registerNom" placeholder="Nom de famille" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
+                    </div>
+                    <!-- Prénom -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Prénom</label>
+                        <input type="text" id="registerPrenom" placeholder="Prénom" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
+                    </div>
+                     <!-- Email -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email Professionnel</label>
+                        <input type="email" id="registerEmail" placeholder="votre.nom@societe.ma" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
+                    </div>
+                     <!-- Password -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+                        <input type="password" id="registerPassword" placeholder="Minimum 6 caractères" required minlength="6" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
+                    </div>
+                    <!-- Téléphone -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                        <input type="tel" id="registerPhone" placeholder="06XXXXXXXX" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
+                    </div>
+                    <!-- Société -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Société</label>
+                        <input type="text" id="registerSociete" placeholder="Nom de votre société" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg shadow transition duration-200 mt-6">
+                    S'inscrire
+                </button>
+            </form>
+
+            <p class="mt-6 text-center text-sm">
+                Déjà un compte ? 
+                <a href="#" onclick="showView('login')" class="text-blue-600 hover:text-blue-800 font-semibold">Se connecter</a>
+            </p>
+        </div>
+
+         <!-- 3. User Settings Modal -->
+        <div id="userSettings" class="absolute top-16 right-4 w-64 bg-white rounded-lg shadow-xl p-4 border border-gray-100 hidden z-10">
+            <h3 class="font-bold text-gray-800 mb-3 border-b pb-2">Gérer les Comptes</h3>
+            <p class="text-xs text-gray-500 mb-3">Sauvegardez ou chargez votre base d'utilisateurs.</p>
+            <button onclick="exportUserFile()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full mb-2">
+                Exporter users.xlsx
+            </button>
+            <label for="userFileUploadInApp" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full block text-center cursor-pointer">
+                Charger un autre users.xlsx
+            </label>
+            <input type="file" id="userFileUploadInApp" accept=".xlsx, .xls" class="hidden" onchange="handleUserFileUpload(event)"/>
+            <p id="userCountStatus" class="mt-2 text-xs text-center text-gray-600"></p>
+        </div>
+
+
+        <!-- 4. Main Application View (Hidden by default) -->
+        <div id="appView" class="hidden">
+            <!-- File Operations Card -->
+            <div class="bg-white rounded-xl shadow-md p-6 mb-8 border-t-4 border-blue-600">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+                    </svg>
+                    1. Fichier Excel des Données (Log)
+                </h2>
+                
+                <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                    <div class="w-full md:w-auto">
+                        <label class="block text-sm text-gray-600 mb-2">Charger un fichier existant :</label>
+                        <input type="file" id="fileUpload" accept=".xlsx, .xls" class="block w-full text-sm text-gray-500
+                            file:mr-4 file:py-2 file:px-4
+                            file:rounded-full file:border-0
+                            file:text-sm file:font-semibold
+                            file:bg-blue-50 file:text-blue-700
+                            hover:file:bg-blue-100
+                            cursor-pointer border border-gray-300 rounded-lg"
+                        />
+                    </div>
+                    
+                    <div class="text-center text-gray-400 font-bold">OU</div>
+
+                    <div class="w-full md:w-auto">
+                         <label class="block text-sm text-gray-600 mb-2">Nouveau fichier :</label>
+                        <button onclick="createTemplate()" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 px-6 rounded-lg transition duration-200 flex items-center gap-2 w-full justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                            </svg>
+                            Créer un Modèle
+                        </button>
+                    </div>
+
+                    <div class="w-full md:w-auto border-l-2 border-gray-100 pl-4 ml-4">
+                         <label class="block text-sm text-gray-600 mb-2 font-bold text-green-700">Sauvegarder :</label>
+                        <button onclick="exportToExcel()" id="exportBtn" disabled class="bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-2 px-6 rounded-lg shadow-md transition duration-200 flex items-center gap-2 w-full justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Exporter Excel
+                        </button>
+                    </div>
+                </div>
+                <p id="statusMsg" class="mt-2 text-sm text-gray-500 italic"></p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                
+                <!-- Input Form Section -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow-md p-6 sticky top-6">
+                        <h2 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2">2. Nouvelle Entrée</h2>
+                        
+                        <form id="maintenanceForm" onsubmit="addEntry(event)">
+                            <div class="space-y-4">
+                                <!-- Matricule -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Matricule</label>
+                                    <input type="text" id="matricule" placeholder="Ex: A123" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                                </div>
+
+                                <!-- Nom et Prénom -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Nom et Prénom</label>
+                                    <input type="text" id="fullname" placeholder="Ex: Ahmed Alami" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                                </div>
+
+                                <!-- Poste -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Poste</label>
+                                    <input type="text" id="poste" placeholder="Ex: Technicien" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                                </div>
+
+                                <!-- Service -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Service</label>
+                                    <input type="text" id="service" placeholder="Ex: Maintenance" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                                </div>
+
+                                <!-- Téléphone -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                                    <input type="tel" id="phone" placeholder="Ex: 0600000000" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                                </div>
+
+                                <!-- Cost -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Cost (DH)</label>
+                                    <input type="number" id="cost" placeholder="0.00" step="0.01" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                                </div>
+
+                                <button type="submit" id="addBtn" disabled class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-lg shadow transition duration-200 mt-4 flex items-center justify-center gap-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                                    </svg>
+                                    Ajouter
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Table Section -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow-md p-6 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-6 border-b pb-2">
+                            <h2 class="text-xl font-bold text-gray-800">3. Liste des Données</h2>
+                            <span id="recordCount" class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">0 Records</span>
+                        </div>
+
+                        <div class="overflow-x-auto custom-scrollbar flex-grow">
+                            <table class="min-w-full text-sm text-left">
+                                <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
+                                    <tr>
+                                        <th class="py-3 px-4 whitespace-nowrap">Matricule</th>
+                                        <th class="py-3 px-4 whitespace-nowrap">Nom et Prénom</th>
+                                        <th class="py-3 px-4 whitespace-nowrap">Poste</th>
+                                        <th class="py-3 px-4 whitespace-nowrap">Service</th>
+                                        <th class="py-3 px-4 whitespace-nowrap">Téléphone</th>
+                                        <th class="py-3 px-4 text-right whitespace-nowrap">Cost (DH)</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tableBody" class="divide-y divide-gray-100">
+                                    <tr>
+                                        <td colspan="6" class="text-center py-10 text-gray-400">
+                                            Aucun fichier. Chargez un fichier Excel ou créez un modèle.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Total Stats -->
+                        <div class="mt-4 pt-4 border-t flex justify-end gap-6 text-sm">
+                            <div>Total Cost: <span id="totalCost" class="font-bold text-lg text-blue-700">0.00 DH</span></div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-green-600 text-white px-6 py-3 rounded-lg shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-3">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span id="toastMsg">Action réussie</span>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let mainData = []; // Data for the main 'Donnees' log
+        let usersData = []; // Data for 'users.xlsx'
+        let currentFileName = "Donnees_Log.xlsx";
+        let isAuthenticated = false;
+        
+        // --- DOM Elements ---
+        const fileInput = document.getElementById('fileUpload');
+        const userFileInput = document.getElementById('userFileUpload');
+        const userFileInputInApp = document.getElementById('userFileUploadInApp');
+        const tableBody = document.getElementById('tableBody');
+        const addBtn = document.getElementById('addBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const statusMsg = document.getElementById('statusMsg');
+        const recordCount = document.getElementById('recordCount');
+        const totalCostEl = document.getElementById('totalCost');
+
+        // Views
+        const loginView = document.getElementById('loginView');
+        const registerView = document.getElementById('registerView');
+        const appView = document.getElementById('appView');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const userSettingsBtn = document.getElementById('userSettingsBtn');
+        const userSettings = document.getElementById('userSettings');
+        const userCountStatus = document.getElementById('userCountStatus');
+
+
+        // --- Event Listeners ---
+        fileInput.addEventListener('change', handleFileUpload);
+        userFileInput.addEventListener('change', handleUserFileUpload);
+        userFileInputInApp.addEventListener('change', handleUserFileUpload);
+
+
+        // --- Initial Setup ---
+        // Initialize usersData as empty on load, allowing immediate registration.
+        window.onload = function() {
+            updateUserCountStatus();
+            showView('login');
+        };
+        
+        // Function to toggle user settings menu
+        function toggleUserSettings(event) {
+            userSettings.classList.toggle('hidden');
+            event.stopPropagation(); // Prevent document click from immediately closing
+        }
+
+        // Close user settings when clicking outside
+        document.addEventListener('click', function(event) {
+            if (!userSettings.classList.contains('hidden') && !userSettingsBtn.contains(event.target) && !userSettings.contains(event.target)) {
+                userSettings.classList.add('hidden');
+            }
+        });
+
+
+        // --- View Controller ---
+        function showView(viewName) {
+            loginView.classList.add('hidden');
+            registerView.classList.add('hidden');
+            appView.classList.add('hidden');
+            logoutBtn.classList.add('hidden');
+            userSettingsBtn.classList.add('hidden');
+            userSettings.classList.add('hidden'); // Hide settings when switching views
+
+            if (viewName === 'login') {
+                loginView.classList.remove('hidden');
+            } else if (viewName === 'register') {
+                registerView.classList.remove('hidden');
+            } else if (viewName === 'app') {
+                appView.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+                userSettingsBtn.classList.remove('hidden');
+                // Ensure main app buttons are correctly enabled/disabled based on data status
+                if (mainData.length === 0) {
+                    addBtn.disabled = true;
+                    exportBtn.disabled = true;
+                    statusMsg.innerText = "Aucun fichier de données chargé.";
+                } else {
+                    enableApp();
+                }
+            }
+        }
+
+        // --- AUTH LOGIC ---
+
+        function handleUserFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                    usersData = jsonData;
+                    
+                    updateUserCountStatus();
+                    showToast(`Fichier utilisateurs chargé. ${usersData.length} comptes trouvés.`);
+                } catch(error) {
+                    showToast("Erreur lors du chargement du fichier utilisateurs. Assurez-vous que c'est un fichier Excel valide.");
+                } finally {
+                    // Reset file input value to allow the same file to be selected again
+                    e.target.value = null; 
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function updateUserCountStatus() {
+            userCountStatus.innerText = `${usersData.length} utilisateur(s) chargé(s).`;
+        }
+
+
+        function attemptRegister(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('registerEmail').value;
+            const password = document.getElementById('registerPassword').value;
+            const nom = document.getElementById('registerNom').value;
+            const prenom = document.getElementById('registerPrenom').value;
+            const phone = document.getElementById('registerPhone').value;
+            const societe = document.getElementById('registerSociete').value;
+
+            // Simple check for duplicate email
+            const userExists = usersData.some(user => user['Email'] && user['Email'].toLowerCase() === email.toLowerCase());
+            
+            if (userExists) {
+                showToast("Erreur: Cet email est déjà enregistré.");
+                return;
+            }
+
+            const newUser = {
+                "Email": email,
+                "Password": password, // WARNING: Simple storage, not secure!
+                "Nom": nom,
+                "Prénom": prenom,
+                "Téléphone": phone,
+                "Société": societe
+            };
+
+            usersData.push(newUser);
+            updateUserCountStatus();
+            document.getElementById('registerForm').reset();
+            showToast("Inscription réussie! Exportez 'users.xlsx' pour sauvegarder.");
+            showView('login');
+        }
+
+        function attemptLogin(event) {
+            event.preventDefault();
+
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const user = usersData.find(user => 
+                user['Email'] && user['Email'].toLowerCase() === email.toLowerCase() && user['Password'] === password
+            );
+
+            if (user) {
+                isAuthenticated = true;
+                showView('app');
+                showToast(`Bienvenue, ${user['Prénom']}!`);
+            } else {
+                showToast("Email ou mot de passe incorrect. Assurez-vous que les comptes sont chargés.");
+            }
+        }
+        
+        function logout() {
+            isAuthenticated = false;
+            showView('login');
+            // Reset main data state on logout 
+            mainData = []; 
+            renderTable();
+            // Reset main status
+            statusMsg.innerText = "";
+            statusMsg.classList.remove('text-green-600', 'font-semibold');
+            statusMsg.classList.add('text-gray-500');
+            showToast("Déconnexion réussie.");
+        }
+
+        function exportUserFile() {
+             if (usersData.length === 0) {
+                showToast("Aucun compte utilisateur à sauvegarder !");
+                return;
+            }
+            const worksheet = XLSX.utils.json_to_sheet(usersData);
+            
+            // Define header keys explicitly to ensure order
+            const header = ["Email", "Password", "Nom", "Prénom", "Téléphone", "Société"];
+            XLSX.utils.sheet_to_json(worksheet, { header: header });
+
+            const wscols = [
+                {wch: 30}, // Email
+                {wch: 20}, // Password
+                {wch: 20}, // Nom
+                {wch: 20}, // Prénom
+                {wch: 15}, // Téléphone
+                {wch: 20}  // Société
+            ];
+            worksheet['!cols'] = wscols;
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Comptes");
+
+            XLSX.writeFile(workbook, "users.xlsx");
+            showToast("Fichier users.xlsx téléchargé.");
+            userSettings.classList.add('hidden');
+        }
+
+        // --- MAIN APP LOGIC (modified to use mainData) ---
+
+        // 1. Initialize Empty Template with new Headers
+        function createTemplate() {
+            mainData = [];
+            
+            // Headers for the main log
+            const headers = {
+                "Matricule": "",
+                "Nom et Prénom": "",
+                "Poste": "",
+                "Service": "",
+                "Téléphone": "",
+                "Cost": 0
+            };
+            // Add one row with headers to ensure format on first save
+            mainData.push(headers);
+            
+            currentFileName = "Nouveau_Suivi.xlsx";
+            enableApp();
+            renderTable();
+            showToast("Nouveau modèle créé.");
+        }
+
+        // 2. Handle File Upload (Main Data)
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            currentFileName = file.name;
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                    mainData = jsonData;
+
+                    enableApp();
+                    renderTable();
+                    showToast("Fichier de données chargé avec succès !");
+                    statusMsg.innerText = `Chargé : ${currentFileName}`;
+                } catch(error) {
+                    showToast("Erreur lors du chargement du fichier de données.");
+                    statusMsg.innerText = `Erreur de lecture du fichier: ${currentFileName}`;
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 3. Render Table
+        function renderTable() {
+            tableBody.innerHTML = "";
+            let totalCost = 0;
+
+            if (mainData.length === 0) {
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">Liste vide. Ajoutez une entrée !</td></tr>`;
+                updateStats(0, 0);
+                return;
+            }
+            
+            // Filter out empty/header rows that might be left from createTemplate
+            const displayData = mainData.filter(row => row['Matricule'] !== "" || row['Cost'] !== 0);
+
+            if (displayData.length === 0) {
+                 tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">Liste vide. Ajoutez une entrée !</td></tr>`;
+                 updateStats(0, 0);
+                 return;
+            }
+
+            displayData.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-blue-50 transition duration-150";
+
+                const mat = row['Matricule'] || '-';
+                const nom = row['Nom et Prénom'] || '-';
+                const poste = row['Poste'] || '-';
+                const service = row['Service'] || '-';
+                const tel = row['Téléphone'] || '-';
+                // Ensure cost is treated as a number
+                const cost = Number(row['Cost']) || 0; 
+
+                totalCost += cost;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-bold text-gray-700">${mat}</td>
+                    <td class="py-3 px-4 text-gray-800">${nom}</td>
+                    <td class="py-3 px-4 text-gray-600">${poste}</td>
+                    <td class="py-3 px-4 text-gray-600">${service}</td>
+                    <td class="py-3 px-4 text-gray-600 font-mono text-xs">${tel}</td>
+                    <td class="py-3 px-4 text-right text-green-700 font-bold">${cost.toFixed(2)}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            updateStats(displayData.length, totalCost);
+        }
+
+        // 4. Add Entry (Updated Fields)
+        function addEntry(event) {
+            event.preventDefault();
+            
+            const costValue = document.getElementById('cost').value;
+
+            const newEntry = {
+                "Matricule": document.getElementById('matricule').value,
+                "Nom et Prénom": document.getElementById('fullname').value,
+                "Poste": document.getElementById('poste').value,
+                "Service": document.getElementById('service').value,
+                "Téléphone": document.getElementById('phone').value,
+                "Cost": Number(costValue)
+            };
+
+            // Remove any initial empty header row if present
+            if (mainData.length === 1 && mainData[0]['Matricule'] === "") {
+                mainData = [];
+            }
+
+            mainData.push(newEntry);
+            document.getElementById('maintenanceForm').reset();
+            
+            renderTable();
+            showToast("Ajouté ! N'oubliez pas d'Exporter le fichier de données.");
+            
+            // Highlight export button
+            exportBtn.classList.add('ring-4', 'ring-green-300');
+            setTimeout(() => exportBtn.classList.remove('ring-4', 'ring-green-300'), 2000);
+        }
+
+        // 5. Export / Save Excel (Main Data)
+        function exportToExcel() {
+            if (mainData.length === 0) {
+                showToast("Aucune donnée à sauvegarder !");
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(mainData);
+            
+            const wscols = [
+                {wch: 15}, // Matricule
+                {wch: 30}, // Nom et Prénom
+                {wch: 20}, // Poste
+                {wch: 20}, // Service
+                {wch: 15}, // Téléphone
+                {wch: 15}  // Cost
+            ];
+            worksheet['!cols'] = wscols;
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Donnees");
+
+            XLSX.writeFile(workbook, currentFileName);
+            showToast("Fichier de données téléchargé.");
+        }
+
+        // --- Helpers ---
+        function enableApp() {
+            addBtn.disabled = false;
+            exportBtn.disabled = false;
+            statusMsg.classList.remove('text-gray-500');
+            statusMsg.classList.add('text-green-600', 'font-semibold');
+        }
+
+        function updateStats(count, cost) {
+            recordCount.innerText = `${count} Entrées`;
+            totalCostEl.innerText = cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " DH";
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = message;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+    </script>
+</body>
+</html>
