@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suivi des Frais - Authentification</title>
+    <title>Suivi des Frais - Authentification & Rôles</title>
     
     <!-- Google Fonts: Cairo -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
@@ -44,7 +44,7 @@
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                <h1 class="text-2xl font-bold" id="appTitle">Gestion des Coûts</h1>
+                <h1 class="text-2xl font-bold" id="appTitle">Gestion des Coûts (Role: <span id="navRoleDisplay">Invité</span>)</h1>
             </div>
             <!-- Logout Button (Only visible if authenticated) -->
             <div class="flex items-center gap-4">
@@ -85,7 +85,7 @@
             </form>
             
             <p class="mt-6 text-center text-sm">
-                Pas encore de compte ? 
+                Pas encore de compte ؟ 
                 <a href="#" onclick="showView('register')" class="text-blue-600 hover:text-blue-800 font-semibold">S'inscrire ici</a>
             </p>
 
@@ -119,6 +119,11 @@
                         <label class="block text-sm font-medium text-gray-700 mb-1">Email Professionnel</label>
                         <input type="email" id="registerEmail" placeholder="votre.nom@societe.ma" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
                     </div>
+                     <!-- Matricule (NEW FIELD) -->
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Matricule (Pour le suivi des coûts)</label>
+                        <input type="text" id="registerMatricule" placeholder="Ex: A123 ou votre ID" required class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none transition" />
+                    </div>
                      <!-- Password -->
                     <div class="md:col-span-2">
                         <label class="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
@@ -142,7 +147,7 @@
             </form>
 
             <p class="mt-6 text-center text-sm">
-                Déjà un compte ? 
+                Déjà un compte ؟ 
                 <a href="#" onclick="showView('login')" class="text-blue-600 hover:text-blue-800 font-semibold">Se connecter</a>
             </p>
         </div>
@@ -163,12 +168,11 @@
         </div>
 
 
-        <!-- 4. Main Application View (Hidden by default) -->
+        <!-- 4. Main Application View (ADMIN ONLY) -->
         <div id="appView" class="hidden">
-            <!-- Welcome Header -->
-            <div class="mb-6 p-4 bg-white rounded-xl shadow-md border-l-4 border-blue-500">
-                <p class="text-lg font-semibold text-gray-800" id="appWelcomeHeader">Bienvenue, Utilisateur !</p>
-                <p class="text-sm text-gray-500" id="userRoleDisplay"></p>
+            <div class="mb-6 p-4 bg-white rounded-xl shadow-md border-l-4 border-red-500">
+                <p class="text-lg font-bold text-red-700">Vue Administrateur - Accès Total aux Données (ADMIN)</p>
+                <p class="text-sm text-gray-500" id="adminRoleInfo"></p>
             </div>
             
             <!-- File Operations Card -->
@@ -177,7 +181,7 @@
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                     </svg>
-                    1. Fichier Excel des Données (Log)
+                    1. Fichier Excel des Données (Log Complet)
                 </h2>
                 
                 <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
@@ -220,7 +224,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 
-                <!-- Input Form Section -->
+                <!-- Input Form Section (Admin can add any data) -->
                 <div class="lg:col-span-1">
                     <div class="bg-white rounded-xl shadow-md p-6 sticky top-6">
                         <h2 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2">2. Nouvelle Entrée</h2>
@@ -229,10 +233,14 @@
                             <div class="space-y-4">
                                 <!-- Matricule -->
                                 <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-1">Matricule</label>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Matricule Employé</label>
                                     <input type="text" id="matricule" placeholder="Ex: A123" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
                                 </div>
-
+                                <!-- Vehicule (NEW INPUT) -->
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-1">Immatriculation Véhicule</label>
+                                    <input type="text" id="vehicule" placeholder="Ex: W-12345" required class="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition" />
+                                </div>
                                 <!-- Nom et Prénom -->
                                 <div>
                                     <label class="block text-sm font-medium text-gray-700 mb-1">Nom et Prénom</label>
@@ -274,11 +282,11 @@
                     </div>
                 </div>
 
-                <!-- Table Section -->
+                <!-- Table Section (Admin view) -->
                 <div class="lg:col-span-2">
                     <div class="bg-white rounded-xl shadow-md p-6 h-full flex flex-col">
                         <div class="flex justify-between items-center mb-6 border-b pb-2">
-                            <h2 class="text-xl font-bold text-gray-800">3. Liste des Données</h2>
+                            <h2 class="text-xl font-bold text-gray-800">3. Liste des Données Complète</h2>
                             <span id="recordCount" class="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded">0 Records</span>
                         </div>
 
@@ -287,10 +295,10 @@
                                 <thead class="bg-gray-50 text-gray-600 font-medium border-b border-gray-200">
                                     <tr>
                                         <th class="py-3 px-4 whitespace-nowrap">Matricule</th>
+                                        <th class="py-3 px-4 whitespace-nowrap">Véhicule</th>
                                         <th class="py-3 px-4 whitespace-nowrap">Nom et Prénom</th>
                                         <th class="py-3 px-4 whitespace-nowrap">Poste</th>
                                         <th class="py-3 px-4 whitespace-nowrap">Service</th>
-                                        <th class="py-3 px-4 whitespace-nowrap">Téléphone</th>
                                         <th class="py-3 px-4 text-right whitespace-nowrap">Cost (DH)</th>
                                     </tr>
                                 </thead>
@@ -313,6 +321,50 @@
 
             </div>
         </div>
+        
+        <!-- 5. User Dashboard View (REGULAR USER ONLY) -->
+        <div id="userDashboardView" class="hidden">
+            <div class="mb-6 p-4 bg-white rounded-xl shadow-md border-l-4 border-green-500">
+                <p class="text-lg font-bold text-green-700" id="dashboardWelcomeHeader">Bienvenue, Utilisateur !</p>
+                <p class="text-sm text-gray-600" id="dashboardUserInfo"></p>
+            </div>
+
+             <div class="bg-white rounded-xl shadow-md p-6">
+                <h2 class="text-xl font-bold mb-6 text-gray-800 border-b pb-2 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Mon Suivi Personnel et Véhicule
+                </h2>
+
+                <div class="overflow-x-auto custom-scrollbar">
+                    <table class="min-w-full text-sm text-left">
+                        <thead class="bg-green-50 text-green-700 font-medium border-b border-green-200">
+                            <tr>
+                                <th class="py-3 px-4 whitespace-nowrap">Véhicule</th>
+                                <th class="py-3 px-4 whitespace-nowrap">Nom et Prénom</th>
+                                <th class="py-3 px-4 whitespace-nowrap">Poste</th>
+                                <th class="py-3 px-4 whitespace-nowrap">Service</th>
+                                <th class="py-3 px-4 text-right whitespace-nowrap">Coût (DH)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboardTableBody" class="divide-y divide-gray-100">
+                            <!-- Data will be injected here -->
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-green-100 font-bold text-gray-800">
+                                <td colspan="4" class="py-3 px-4 text-right">Total Coût Personnel :</td>
+                                <td class="py-3 px-4 text-right"><span id="dashboardTotalCost">0.00 DH</span></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div id="dashboardNoData" class="text-center py-8 text-gray-400 hidden">
+                    Aucune donnée de coût trouvée pour votre Matricule (<span id="dashboardMatriculeDisplay"></span>).
+                </div>
+            </div>
+        </div>
 
     </div>
 
@@ -332,12 +384,14 @@
         let isAuthenticated = false;
         let currentUserRole = null; 
         let currentUserName = null; 
+        let currentUserMatricule = null; // NEW: Store the user's Matricule
         
         // --- DOM Elements ---
         const fileInput = document.getElementById('fileUpload');
         const userFileInput = document.getElementById('userFileUpload');
         const userFileInputInApp = document.getElementById('userFileUploadInApp');
         const tableBody = document.getElementById('tableBody');
+        const dashboardTableBody = document.getElementById('dashboardTableBody');
         const addBtn = document.getElementById('addBtn');
         const exportBtn = document.getElementById('exportBtn');
         const statusMsg = document.getElementById('statusMsg');
@@ -348,13 +402,17 @@
         const loginView = document.getElementById('loginView');
         const registerView = document.getElementById('registerView');
         const appView = document.getElementById('appView');
+        const userDashboardView = document.getElementById('userDashboardView'); // NEW
         const logoutBtn = document.getElementById('logoutBtn');
         const userSettingsBtn = document.getElementById('userSettingsBtn');
         const userSettings = document.getElementById('userSettings');
         const userCountStatus = document.getElementById('userCountStatus');
-        const appWelcomeHeader = document.getElementById('appWelcomeHeader');
-        const userRoleDisplay = document.getElementById('userRoleDisplay');
-
+        const navRoleDisplay = document.getElementById('navRoleDisplay');
+        const dashboardWelcomeHeader = document.getElementById('dashboardWelcomeHeader');
+        const dashboardUserInfo = document.getElementById('dashboardUserInfo');
+        const dashboardTotalCost = document.getElementById('dashboardTotalCost');
+        const dashboardNoData = document.getElementById('dashboardNoData');
+        const dashboardMatriculeDisplay = document.getElementById('dashboardMatriculeDisplay');
 
         // --- Event Listeners ---
         fileInput.addEventListener('change', handleFileUpload);
@@ -391,28 +449,28 @@
             loginView.classList.add('hidden');
             registerView.classList.add('hidden');
             appView.classList.add('hidden');
+            userDashboardView.classList.add('hidden'); // NEW: Hide dashboard
             logoutBtn.classList.add('hidden');
-            userSettingsBtn.classList.add('hidden'); // Hidden by default, toggled by checkAccess
-            userSettings.classList.add('hidden'); // Always hide settings on view change
+            userSettingsBtn.classList.add('hidden');
+            userSettings.classList.add('hidden');
+
+            navRoleDisplay.innerText = currentUserRole || "Invité";
 
             if (viewName === 'login') {
                 loginView.classList.remove('hidden');
             } else if (viewName === 'register') {
                 registerView.classList.remove('hidden');
             } else if (viewName === 'app') {
+                // Admin View
                 appView.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
-                
-                checkAccess(); // Check and apply role permissions
-                
-                // Ensure main app buttons are correctly enabled/disabled based on data status
-                if (mainData.length === 0) {
-                    addBtn.disabled = true;
-                    exportBtn.disabled = true; // Disabled by checkAccess for non-admins
-                    statusMsg.innerText = "Aucun fichier de données chargé.";
-                } else {
-                    enableApp();
-                }
+                checkAccess(); 
+            } else if (viewName === 'dashboard') {
+                // Regular User View
+                userDashboardView.classList.remove('hidden');
+                logoutBtn.classList.remove('hidden');
+                checkAccess(); 
+                renderDashboard(); // Render the personalized data
             }
         }
 
@@ -438,7 +496,6 @@
                 } catch(error) {
                     showToast("Erreur lors du chargement du fichier utilisateurs. Assurez-vous que c'est un fichier Excel valide.");
                 } finally {
-                    // Reset file input value to allow the same file to be selected again
                     e.target.value = null; 
                 }
             };
@@ -459,7 +516,6 @@
                 return;
             }
             
-            // If called manually (not silent), check for Admin role.
             if (!silent && (!currentUserRole || currentUserRole.toLowerCase() !== 'admin')) {
                 showToast("Accès refusé. Seuls les administrateurs peuvent exporter les comptes manuellement.");
                 return;
@@ -467,8 +523,8 @@
             
             const worksheet = XLSX.utils.json_to_sheet(usersData);
             
-            // Define header keys explicitly to ensure order
-            const header = ["Email", "Password", "Nom", "Prénom", "Téléphone", "Société", "Role"]; 
+            // Define header keys explicitly to ensure order (UPDATED: Added Matricule)
+            const header = ["Email", "Password", "Nom", "Prénom", "Matricule", "Téléphone", "Société", "Role"]; 
             XLSX.utils.sheet_to_json(worksheet, { header: header });
 
             const wscols = [
@@ -476,25 +532,24 @@
                 {wch: 20}, // Password
                 {wch: 20}, // Nom
                 {wch: 20}, // Prénom
+                {wch: 15}, // Matricule (NEW)
                 {wch: 15}, // Téléphone
                 {wch: 20},  // Société
-                {wch: 10}   // Role (New)
+                {wch: 10}   // Role 
             ];
             worksheet['!cols'] = wscols;
 
             const workbook = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(workbook, worksheet, "Comptes");
 
-            // --- THIS LINE TRIGGERS THE AUTOMATIC DOWNLOAD (OVERWRITES LOCAL FILE) ---
             XLSX.writeFile(workbook, "users.xlsx");
-            // ------------------------------------------------
+            
 
             if (!silent) {
                 showToast("Fichier users.xlsx téléchargé.");
                 userSettings.classList.add('hidden');
             } else {
-                 // **MESSAGE CLARIFICATION ADDED HERE**
-                 showToast("Inscription réussie! 1) Veuillez accepter le téléchargement du fichier 'users.xlsx'. 2) Pour se connecter، يجب إعادة تحميل (Charger) هذا الملف المحدث في صفحة الدخول.");
+                 showToast("Inscription réussie! 1) Acceptez le téléchargement du fichier 'users.xlsx'. 2) Pour vous connecter، يجب إعادة تحميل (Charger) ce fichier mis à jour dans la page d'accueil.");
             }
         }
 
@@ -506,22 +561,27 @@
             const password = document.getElementById('registerPassword').value;
             const nom = document.getElementById('registerNom').value;
             const prenom = document.getElementById('registerPrenom').value;
+            const matricule = document.getElementById('registerMatricule').value.trim().toUpperCase(); // NEW
             const phone = document.getElementById('registerPhone').value;
             const societe = document.getElementById('registerSociete').value;
 
-            // Simple check for duplicate email
-            const userExists = usersData.some(user => user['Email'] && user['Email'].toLowerCase() === email.toLowerCase());
+            // Simple check for duplicate email OR Matricule
+            const userExists = usersData.some(user => 
+                (user['Email'] && user['Email'].toLowerCase() === email.toLowerCase()) || 
+                (user['Matricule'] && user['Matricule'].toUpperCase() === matricule)
+            );
             
             if (userExists) {
-                showToast("Erreur: Cet email est déjà enregistré.");
+                showToast("Erreur: Cet email ou Matricule est déjà enregistré.");
                 return;
             }
 
             const newUser = {
                 "Email": email,
-                "Password": password, // WARNING: Simple storage, not secure!
+                "Password": password, 
                 "Nom": nom,
                 "Prénom": prenom,
+                "Matricule": matricule, // NEW
                 "Téléphone": phone,
                 "Société": societe,
                 "Role": "User" 
@@ -531,9 +591,8 @@
             updateUserCountStatus();
             document.getElementById('registerForm').reset();
             
-            // --- NEW: Automatically save and download the updated user file ---
-            saveUsersDataToFile(true); // true for silent mode (custom toast message)
-            // -----------------------------------------------------------------
+            // Automatically save and download the updated user file
+            saveUsersDataToFile(true); 
             
             showView('login');
         }
@@ -550,11 +609,19 @@
 
             if (user) {
                 isAuthenticated = true;
-                currentUserRole = user['Role'] ? user['Role'].trim() : 'User'; // Get and store the role, default to 'User'
-                currentUserName = user['Prénom'] || user['Nom'] || user['Email']; // Store the name for display
+                currentUserRole = user['Role'] ? user['Role'].trim() : 'User';
+                currentUserName = user['Prénom'] || user['Nom'] || user['Email'];
+                // NEW: Store the Matricule for filtering data
+                currentUserMatricule = user['Matricule'] ? user['Matricule'].trim().toUpperCase() : null;
 
-                showView('app');
                 showToast(`Bienvenue، ${currentUserName}! Rôle: ${currentUserRole}.`);
+
+                if (currentUserRole.toLowerCase() === 'admin') {
+                    showView('app'); // ADMIN goes to full view
+                } else {
+                    showView('dashboard'); // USER goes to personalized dashboard
+                }
+
             } else {
                 showToast("Email ou mot de passe incorrect. Assurez-vous que les comptes sont chargés.");
             }
@@ -562,16 +629,16 @@
         
         function logout() {
             isAuthenticated = false;
-            currentUserRole = null; // Clear role on logout
-            currentUserName = null; // Clear name on logout
+            currentUserRole = null; 
+            currentUserName = null; 
+            currentUserMatricule = null; // Clear on logout
             showView('login');
-            // Reset main data state on logout 
-            mainData = []; 
-            renderTable();
-            // Reset main status
-            statusMsg.innerText = "";
-            statusMsg.classList.remove('text-green-600', 'font-semibold');
-            statusMsg.classList.add('text-gray-500');
+            
+            // Reset main data state (optional, but good practice for multi-user shared app)
+            // mainData = []; 
+            // renderTable(); 
+            // statusMsg.innerText = "";
+            
             showToast("Déconnexion réussie.");
         }
 
@@ -584,32 +651,25 @@
             userSettingsBtn.classList.toggle('hidden', !isAdmin);
             
             // 2. Export Button (Export Main Data) - Admin Only
-            // The button will be disabled/enabled based on data existence in enableApp,
-            // but for non-admins, it must remain disabled regardless of data.
             exportBtn.disabled = !isAdmin || mainData.length === 0;
 
-            // 3. Update Welcome Message
-            appWelcomeHeader.innerText = `Bienvenue, ${currentUserName} !`;
-            userRoleDisplay.innerText = `Votre rôle : ${currentUserRole}`;
-            
-            if (isAdmin) {
-                userRoleDisplay.classList.remove('text-gray-500');
-                userRoleDisplay.classList.add('text-red-600', 'font-bold');
-            } else {
-                userRoleDisplay.classList.remove('text-red-600', 'font-bold');
-                userRoleDisplay.classList.add('text-gray-500');
+            // 3. Update Welcome Message in Admin View
+            const adminRoleInfo = document.getElementById('adminRoleInfo');
+            if(isAdmin && adminRoleInfo) {
+                adminRoleInfo.innerText = `Connecté en tant que: ${currentUserName} | Matricule: ${currentUserMatricule}`;
             }
         }
         
-        // --- MAIN APP LOGIC (modified to use mainData) ---
+        // --- ADMIN APP LOGIC ---
 
-        // 1. Initialize Empty Template with new Headers
+        // 1. Initialize Empty Template with new Headers (ADDED Véhicule)
         function createTemplate() {
             mainData = [];
             
             // Headers for the main log
             const headers = {
                 "Matricule": "",
+                "Véhicule": "", // NEW HEADER
                 "Nom et Prénom": "",
                 "Poste": "",
                 "Service": "",
@@ -645,6 +705,10 @@
 
                     enableApp();
                     renderTable();
+                    // If regular user is logged in, re-render their view with new data
+                    if (currentUserRole && currentUserRole.toLowerCase() !== 'admin') {
+                        renderDashboard();
+                    }
                     showToast("Fichier de données chargé avec succès !");
                     statusMsg.innerText = `Chargé : ${currentFileName}`;
                 } catch(error) {
@@ -656,18 +720,17 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // 3. Render Table
+        // 3. Render Table (ADMIN ONLY - Full data)
         function renderTable() {
             tableBody.innerHTML = "";
             let totalCost = 0;
 
             if (mainData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">Liste vide. Ajoutez une entrée !</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">Aucun fichier. Chargez un fichier Excel ou créez un modèle.</td></tr>`;
                 updateStats(0, 0);
                 return;
             }
             
-            // Filter out empty/header rows that might be left from createTemplate
             const displayData = mainData.filter(row => row['Matricule'] !== "" || row['Cost'] !== 0);
 
             if (displayData.length === 0) {
@@ -681,21 +744,20 @@
                 tr.className = "hover:bg-blue-50 transition duration-150";
 
                 const mat = row['Matricule'] || '-';
+                const vehicule = row['Véhicule'] || '-'; // NEW FIELD
                 const nom = row['Nom et Prénom'] || '-';
                 const poste = row['Poste'] || '-';
                 const service = row['Service'] || '-';
-                const tel = row['Téléphone'] || '-';
-                // Ensure cost is treated as a number
                 const cost = Number(row['Cost']) || 0; 
 
                 totalCost += cost;
 
                 tr.innerHTML = `
                     <td class="py-3 px-4 font-bold text-gray-700">${mat}</td>
+                    <td class="py-3 px-4 text-orange-600 font-bold">${vehicule}</td>
                     <td class="py-3 px-4 text-gray-800">${nom}</td>
                     <td class="py-3 px-4 text-gray-600">${poste}</td>
                     <td class="py-3 px-4 text-gray-600">${service}</td>
-                    <td class="py-3 px-4 text-gray-600 font-mono text-xs">${tel}</td>
                     <td class="py-3 px-4 text-right text-green-700 font-bold">${cost.toFixed(2)}</td>
                 `;
                 tableBody.appendChild(tr);
@@ -711,7 +773,8 @@
             const costValue = document.getElementById('cost').value;
 
             const newEntry = {
-                "Matricule": document.getElementById('matricule').value,
+                "Matricule": document.getElementById('matricule').value.trim().toUpperCase(),
+                "Véhicule": document.getElementById('vehicule').value.trim().toUpperCase(), // NEW FIELD
                 "Nom et Prénom": document.getElementById('fullname').value,
                 "Poste": document.getElementById('poste').value,
                 "Service": document.getElementById('service').value,
@@ -752,6 +815,7 @@
             
             const wscols = [
                 {wch: 15}, // Matricule
+                {wch: 15}, // Vehicule (NEW)
                 {wch: 30}, // Nom et Prénom
                 {wch: 20}, // Poste
                 {wch: 20}, // Service
@@ -767,10 +831,71 @@
             showToast("Fichier de données téléchargé.");
         }
 
+        // --- USER DASHBOARD LOGIC (NEW) ---
+
+        function renderDashboard() {
+            dashboardTableBody.innerHTML = '';
+            dashboardMatriculeDisplay.innerText = currentUserMatricule;
+            let personalTotalCost = 0;
+            let displayData = [];
+            
+            if (!currentUserMatricule) {
+                dashboardNoData.classList.remove('hidden');
+                dashboardWelcomeHeader.innerText = "Erreur: Matricule non trouvé.";
+                return;
+            }
+            
+            // Filter the main data log by the current user's matricule
+            const filteredData = mainData.filter(row => 
+                row['Matricule'] && row['Matricule'].toUpperCase() === currentUserMatricule
+            );
+
+            // Filter out empty/header rows
+            displayData = filteredData.filter(row => row['Matricule'] !== "" || row['Cost'] !== 0);
+
+
+            // Update Header Info
+            dashboardWelcomeHeader.innerText = `Bienvenue, ${currentUserName} !`;
+            dashboardUserInfo.innerText = `Matricule: ${currentUserMatricule}. Seules les entrées liées à votre ID sont affichées.`;
+            
+            if (displayData.length === 0) {
+                dashboardNoData.classList.remove('hidden');
+                dashboardTotalCost.innerText = '0.00 DH';
+                return;
+            }
+
+            dashboardNoData.classList.add('hidden');
+            
+            displayData.forEach((row) => {
+                const tr = document.createElement('tr');
+                tr.className = "hover:bg-green-50 transition duration-150";
+
+                const vehicule = row['Véhicule'] || '-'; // NEW FIELD
+                const nom = row['Nom et Prénom'] || '-';
+                const poste = row['Poste'] || '-';
+                const service = row['Service'] || '-';
+                const cost = Number(row['Cost']) || 0; 
+
+                personalTotalCost += cost;
+
+                tr.innerHTML = `
+                    <td class="py-3 px-4 font-bold text-orange-600">${vehicule}</td>
+                    <td class="py-3 px-4 text-gray-800">${nom}</td>
+                    <td class="py-3 px-4 text-gray-600">${poste}</td>
+                    <td class="py-3 px-4 text-gray-600">${service}</td>
+                    <td class="py-3 px-4 text-right text-red-700 font-bold">${cost.toFixed(2)}</td>
+                `;
+                dashboardTableBody.appendChild(tr);
+            });
+
+            dashboardTotalCost.innerText = personalTotalCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2}) + " DH";
+        }
+
+
         // --- Helpers ---
         function enableApp() {
             addBtn.disabled = false;
-            // Re-check access to set export button correctly
+            // Re-check access to set export button correctly (only admin can export)
             checkAccess(); 
             
             statusMsg.classList.remove('text-gray-500');
@@ -788,7 +913,7 @@
             toast.classList.remove('translate-y-20', 'opacity-0');
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
-            }, 5000); // Increased duration to 5s for instructional messages
+            }, 5000); 
         }
 
     </script>
