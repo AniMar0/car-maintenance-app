@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Suivi des Frais - Authentification & Rôles</title>
     
-    <!-- Google Fonts: Cairo -->
+    <!-- Google Fonts: Cairo (Arabic/Latin) -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
     
     <!-- Tailwind CSS -->
@@ -85,17 +85,27 @@
             </form>
             
             <p class="mt-6 text-center text-sm">
-                Pas encore de compte ؟ 
+                Pas encore de compte ? 
                 <a href="#" onclick="showView('register')" class="text-blue-600 hover:text-blue-800 font-semibold">S'inscrire ici</a>
             </p>
 
-             <div class="mt-8 pt-4 border-t border-gray-200">
+            <div class="mt-8 pt-4 border-t border-gray-200">
                 <p class="text-sm text-gray-600 mb-3">Si vous avez déjà un fichier <span class="font-mono bg-yellow-100 px-1 rounded">users.xlsx</span>, chargez-le ici :</p>
                 <label for="userFileUpload" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full block text-center cursor-pointer">
                     Charger les Comptes Existants
                 </label>
                 <input type="file" id="userFileUpload" accept=".xlsx, .xls" class="hidden" onchange="handleUserFileUpload(event)"/>
             </div>
+
+            <!-- NOUVEAU: Charger les Tickets -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <p class="text-sm text-gray-600 mb-3">Charger les données de coût/ticket :</p>
+                <label for="ticketFileUpload" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full block text-center cursor-pointer">
+                    Charger les Tickets (Donnees_Log.xlsx)
+                </label>
+                <input type="file" id="ticketFileUpload" accept=".xlsx, .xls" class="hidden" onchange="handleTicketFileUpload(event)"/>
+            </div>
+
         </div>
 
         <!-- 2. Register View -->
@@ -147,7 +157,7 @@
             </form>
 
             <p class="mt-6 text-center text-sm">
-                Déjà un compte ؟ 
+                Déjà un compte ? 
                 <a href="#" onclick="showView('login')" class="text-blue-600 hover:text-blue-800 font-semibold">Se connecter</a>
             </p>
         </div>
@@ -187,6 +197,8 @@
                 <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
                     <div class="w-full md:w-auto">
                         <label class="block text-sm text-gray-600 mb-2">Charger un fichier existant :</label>
+                        <!-- File upload for Admin post-login is now hidden/disabled as pre-login is preferred, 
+                             but left here for completeness if Admin needs to override the pre-loaded file. -->
                         <input type="file" id="fileUpload" accept=".xlsx, .xls" class="block w-full text-sm text-gray-500
                             file:mr-4 file:py-2 file:px-4
                             file:rounded-full file:border-0
@@ -305,7 +317,7 @@
                                 <tbody id="tableBody" class="divide-y divide-gray-100">
                                     <tr>
                                         <td colspan="6" class="text-center py-10 text-gray-400">
-                                            Aucun fichier. Chargez un fichier Excel ou créez un modèle.
+                                            Aucune donnée chargée. Chargez un fichier Excel.
                                         </td>
                                     </tr>
                                 </tbody>
@@ -378,18 +390,19 @@
 
     <script>
         // --- State Management ---
-        let mainData = []; // Data for the main 'Donnees' log
-        let usersData = []; // Data for 'users.xlsx'
+        let mainData = []; // Data for the main 'Donnees' log (Tickets)
+        let usersData = []; // Data for 'users.xlsx' (Comptes)
         let currentFileName = "Donnees_Log.xlsx";
         let isAuthenticated = false;
         let currentUserRole = null; 
         let currentUserName = null; 
-        let currentUserMatricule = null; // NEW: Store the user's Matricule
+        let currentUserMatricule = null; 
         
         // --- DOM Elements ---
-        const fileInput = document.getElementById('fileUpload');
+        const fileInput = document.getElementById('fileUpload'); // Admin View Upload
         const userFileInput = document.getElementById('userFileUpload');
         const userFileInputInApp = document.getElementById('userFileUploadInApp');
+        const ticketFileInput = document.getElementById('ticketFileUpload'); // NEW: Pre-login Ticket Upload
         const tableBody = document.getElementById('tableBody');
         const dashboardTableBody = document.getElementById('dashboardTableBody');
         const addBtn = document.getElementById('addBtn');
@@ -402,7 +415,7 @@
         const loginView = document.getElementById('loginView');
         const registerView = document.getElementById('registerView');
         const appView = document.getElementById('appView');
-        const userDashboardView = document.getElementById('userDashboardView'); // NEW
+        const userDashboardView = document.getElementById('userDashboardView'); 
         const logoutBtn = document.getElementById('logoutBtn');
         const userSettingsBtn = document.getElementById('userSettingsBtn');
         const userSettings = document.getElementById('userSettings');
@@ -418,7 +431,7 @@
         fileInput.addEventListener('change', handleFileUpload);
         userFileInput.addEventListener('change', handleUserFileUpload);
         userFileInputInApp.addEventListener('change', handleUserFileUpload);
-
+        ticketFileInput.addEventListener('change', handleTicketFileUpload); // NEW LISTENER
 
         // --- Initial Setup ---
         window.onload = function() {
@@ -430,7 +443,7 @@
         function toggleUserSettings(event) {
             if (currentUserRole && currentUserRole.toLowerCase() === 'admin') {
                 userSettings.classList.toggle('hidden');
-                event.stopPropagation(); // Prevent document click from immediately closing
+                event.stopPropagation(); 
             } else {
                 showToast("Accès refusé. Vous n'êtes pas administrateur.");
             }
@@ -449,7 +462,7 @@
             loginView.classList.add('hidden');
             registerView.classList.add('hidden');
             appView.classList.add('hidden');
-            userDashboardView.classList.add('hidden'); // NEW: Hide dashboard
+            userDashboardView.classList.add('hidden'); 
             logoutBtn.classList.add('hidden');
             userSettingsBtn.classList.add('hidden');
             userSettings.classList.add('hidden');
@@ -465,6 +478,7 @@
                 appView.classList.remove('hidden');
                 logoutBtn.classList.remove('hidden');
                 checkAccess(); 
+                renderTable(); // Render table with pre-loaded data
             } else if (viewName === 'dashboard') {
                 // Regular User View
                 userDashboardView.classList.remove('hidden');
@@ -474,7 +488,7 @@
             }
         }
 
-        // --- AUTH LOGIC ---
+        // --- AUTH LOGIC (Users Data - users.xlsx) ---
 
         function handleUserFileUpload(e) {
             const file = e.target.files[0];
@@ -501,6 +515,49 @@
             };
             reader.readAsArrayBuffer(file);
         }
+        
+        // --- PRE-LOGIN TICKET LOGIC (mainData - Donnees_Log.xlsx) ---
+
+        /**
+         * NEW FUNCTION: Handles the ticket data file upload (pre-login)
+         */
+        function handleTicketFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            currentFileName = file.name;
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+                    mainData = jsonData; // Populate global mainData
+                    
+                    showToast(`Fichier de tickets "${currentFileName}" chargé avec succès ! (${mainData.length} entrées)`);
+                    
+                    // Since data is loaded, we enable the Admin's "Add" and "Export" buttons if already logged in (will be re-checked upon login)
+                    if (mainData.length > 0) {
+                        addBtn.disabled = false;
+                        exportBtn.disabled = !currentUserRole || currentUserRole.toLowerCase() !== 'admin';
+                    }
+                    
+                    // Clear the input value so the same file can be loaded again if needed
+                    e.target.value = null; 
+
+                } catch(error) {
+                    showToast("Erreur lors du chargement du fichier de tickets. Assurez-vous que c'est un fichier Excel valide.");
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // ... (Remaining JS functions, ensure French consistency in toasts) ...
 
         function updateUserCountStatus() {
             userCountStatus.innerText = `${usersData.length} utilisateur(s) chargé(s).`;
@@ -549,7 +606,7 @@
                 showToast("Fichier users.xlsx téléchargé.");
                 userSettings.classList.add('hidden');
             } else {
-                 showToast("Inscription réussie! 1) Acceptez le téléchargement du fichier 'users.xlsx'. 2) Pour vous connecter، يجب إعادة تحميل (Charger) ce fichier mis à jour dans la page d'accueil.");
+                 showToast("Inscription réussie! 1) Acceptez le téléchargement du fichier 'users.xlsx'. 2) Pour vous connecter, vous devez recharger ce fichier mis à jour dans la page d'accueil.");
             }
         }
 
@@ -561,7 +618,7 @@
             const password = document.getElementById('registerPassword').value;
             const nom = document.getElementById('registerNom').value;
             const prenom = document.getElementById('registerPrenom').value;
-            const matricule = document.getElementById('registerMatricule').value.trim().toUpperCase(); // NEW
+            const matricule = document.getElementById('registerMatricule').value.trim().toUpperCase(); 
             const phone = document.getElementById('registerPhone').value;
             const societe = document.getElementById('registerSociete').value;
 
@@ -581,7 +638,7 @@
                 "Password": password, 
                 "Nom": nom,
                 "Prénom": prenom,
-                "Matricule": matricule, // NEW
+                "Matricule": matricule, 
                 "Téléphone": phone,
                 "Société": societe,
                 "Role": "User" 
@@ -608,13 +665,17 @@
             );
 
             if (user) {
+                if(mainData.length === 0) {
+                     showToast("ATTENTION: Aucune donnée de ticket chargée! Veuillez charger le fichier Donnees_Log.xlsx avant de vous connecter.");
+                     return;
+                }
+                
                 isAuthenticated = true;
                 currentUserRole = user['Role'] ? user['Role'].trim() : 'User';
                 currentUserName = user['Prénom'] || user['Nom'] || user['Email'];
-                // NEW: Store the Matricule for filtering data
                 currentUserMatricule = user['Matricule'] ? user['Matricule'].trim().toUpperCase() : null;
 
-                showToast(`Bienvenue، ${currentUserName}! Rôle: ${currentUserRole}.`);
+                showToast(`Bienvenue, ${currentUserName}! Rôle: ${currentUserRole}.`);
 
                 if (currentUserRole.toLowerCase() === 'admin') {
                     showView('app'); // ADMIN goes to full view
@@ -631,14 +692,8 @@
             isAuthenticated = false;
             currentUserRole = null; 
             currentUserName = null; 
-            currentUserMatricule = null; // Clear on logout
+            currentUserMatricule = null; 
             showView('login');
-            
-            // Reset main data state (optional, but good practice for multi-user shared app)
-            // mainData = []; 
-            // renderTable(); 
-            // statusMsg.innerText = "";
-            
             showToast("Déconnexion réussie.");
         }
 
@@ -653,7 +708,10 @@
             // 2. Export Button (Export Main Data) - Admin Only
             exportBtn.disabled = !isAdmin || mainData.length === 0;
 
-            // 3. Update Welcome Message in Admin View
+            // 3. Admin App Access
+            addBtn.disabled = false; // Always allow adding if mainData is loaded or template is created
+
+            // 4. Update Welcome Message in Admin View
             const adminRoleInfo = document.getElementById('adminRoleInfo');
             if(isAdmin && adminRoleInfo) {
                 adminRoleInfo.innerText = `Connecté en tant que: ${currentUserName} | Matricule: ${currentUserMatricule}`;
@@ -662,14 +720,14 @@
         
         // --- ADMIN APP LOGIC ---
 
-        // 1. Initialize Empty Template with new Headers (ADDED Véhicule)
+        // 1. Initialize Empty Template with new Headers 
         function createTemplate() {
             mainData = [];
             
             // Headers for the main log
             const headers = {
                 "Matricule": "",
-                "Véhicule": "", // NEW HEADER
+                "Véhicule": "", 
                 "Nom et Prénom": "",
                 "Poste": "",
                 "Service": "",
@@ -685,7 +743,7 @@
             showToast("Nouveau modèle créé.");
         }
 
-        // 2. Handle File Upload (Main Data)
+        // 2. Handle File Upload (Main Data - Admin post-login override)
         function handleFileUpload(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -726,7 +784,7 @@
             let totalCost = 0;
 
             if (mainData.length === 0) {
-                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">Aucun fichier. Chargez un fichier Excel ou créez un modèle.</td></tr>`;
+                tableBody.innerHTML = `<tr><td colspan="6" class="text-center py-10 text-gray-400">Aucune donnée chargée. Chargez un fichier Excel.</td></tr>`;
                 updateStats(0, 0);
                 return;
             }
@@ -744,7 +802,7 @@
                 tr.className = "hover:bg-blue-50 transition duration-150";
 
                 const mat = row['Matricule'] || '-';
-                const vehicule = row['Véhicule'] || '-'; // NEW FIELD
+                const vehicule = row['Véhicule'] || '-'; 
                 const nom = row['Nom et Prénom'] || '-';
                 const poste = row['Poste'] || '-';
                 const service = row['Service'] || '-';
@@ -766,7 +824,7 @@
             updateStats(displayData.length, totalCost);
         }
 
-        // 4. Add Entry (Updated Fields)
+        // 4. Add Entry 
         function addEntry(event) {
             event.preventDefault();
             
@@ -774,7 +832,7 @@
 
             const newEntry = {
                 "Matricule": document.getElementById('matricule').value.trim().toUpperCase(),
-                "Véhicule": document.getElementById('vehicule').value.trim().toUpperCase(), // NEW FIELD
+                "Véhicule": document.getElementById('vehicule').value.trim().toUpperCase(), 
                 "Nom et Prénom": document.getElementById('fullname').value,
                 "Poste": document.getElementById('poste').value,
                 "Service": document.getElementById('service').value,
@@ -815,7 +873,7 @@
             
             const wscols = [
                 {wch: 15}, // Matricule
-                {wch: 15}, // Vehicule (NEW)
+                {wch: 15}, // Vehicule 
                 {wch: 30}, // Nom et Prénom
                 {wch: 20}, // Poste
                 {wch: 20}, // Service
@@ -831,7 +889,7 @@
             showToast("Fichier de données téléchargé.");
         }
 
-        // --- USER DASHBOARD LOGIC (NEW) ---
+        // --- USER DASHBOARD LOGIC ---
 
         function renderDashboard() {
             dashboardTableBody.innerHTML = '';
@@ -843,6 +901,14 @@
                 dashboardNoData.classList.remove('hidden');
                 dashboardWelcomeHeader.innerText = "Erreur: Matricule non trouvé.";
                 return;
+            }
+            
+            if (mainData.length === 0) {
+                 dashboardNoData.classList.remove('hidden');
+                 dashboardNoData.innerHTML = "Aucune donnée de coût chargée. Veuillez contacter l'administrateur.";
+                 dashboardWelcomeHeader.innerText = `Bienvenue, ${currentUserName} !`;
+                 dashboardTotalCost.innerText = '0.00 DH';
+                 return;
             }
             
             // Filter the main data log by the current user's matricule
@@ -860,6 +926,7 @@
             
             if (displayData.length === 0) {
                 dashboardNoData.classList.remove('hidden');
+                dashboardNoData.innerHTML = `Aucune donnée de coût trouvée pour votre Matricule (<span class="font-bold">${currentUserMatricule}</span>).`;
                 dashboardTotalCost.innerText = '0.00 DH';
                 return;
             }
@@ -870,7 +937,7 @@
                 const tr = document.createElement('tr');
                 tr.className = "hover:bg-green-50 transition duration-150";
 
-                const vehicule = row['Véhicule'] || '-'; // NEW FIELD
+                const vehicule = row['Véhicule'] || '-'; 
                 const nom = row['Nom et Prénom'] || '-';
                 const poste = row['Poste'] || '-';
                 const service = row['Service'] || '-';
