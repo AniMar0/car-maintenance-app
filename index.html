@@ -151,7 +151,8 @@
         <div id="userSettings" class="absolute top-16 right-4 w-64 bg-white rounded-lg shadow-xl p-4 border border-gray-100 hidden z-10">
             <h3 class="font-bold text-gray-800 mb-3 border-b pb-2">Gérer les Comptes Utilisateurs</h3>
             <p class="text-xs text-gray-500 mb-3">Sauvegardez ou chargez votre base d'utilisateurs. <span class="font-bold text-red-500">Réservé aux Admins.</span></p>
-            <button onclick="exportUserFile()" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full mb-2">
+            <!-- Call saveUsersDataToFile with silent=false for manual export -->
+            <button onclick="saveUsersDataToFile(false)" class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full mb-2">
                 Exporter users.xlsx
             </button>
             <label for="userFileUploadInApp" class="bg-yellow-500 hover:bg-yellow-600 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 text-sm w-full block text-center cursor-pointer">
@@ -329,8 +330,8 @@
         let usersData = []; // Data for 'users.xlsx'
         let currentFileName = "Donnees_Log.xlsx";
         let isAuthenticated = false;
-        let currentUserRole = null; // NEW: Stores the authenticated user's role
-        let currentUserName = null; // NEW: Stores the authenticated user's name
+        let currentUserRole = null; 
+        let currentUserName = null; 
         
         // --- DOM Elements ---
         const fileInput = document.getElementById('fileUpload');
@@ -392,6 +393,7 @@
             appView.classList.add('hidden');
             logoutBtn.classList.add('hidden');
             userSettingsBtn.classList.add('hidden'); // Hidden by default, toggled by checkAccess
+            userSettings.classList.add('hidden'); // Always hide settings on view change
 
             if (viewName === 'login') {
                 loginView.classList.remove('hidden');
@@ -447,6 +449,55 @@
             userCountStatus.innerText = `${usersData.length} utilisateur(s) chargé(s).`;
         }
 
+        /**
+         * Saves the current usersData array to an 'users.xlsx' file and triggers a download.
+         * @param {boolean} silent If true, suppresses the success toast and settings closing. Used for automatic registration save.
+         */
+        function saveUsersDataToFile(silent = false) {
+             if (usersData.length === 0) {
+                if (!silent) showToast("Aucun compte utilisateur à sauvegarder !");
+                return;
+            }
+            
+            // If called manually (not silent), check for Admin role.
+            if (!silent && (!currentUserRole || currentUserRole.toLowerCase() !== 'admin')) {
+                showToast("Accès refusé. Seuls les administrateurs peuvent exporter les comptes manuellement.");
+                return;
+            }
+            
+            const worksheet = XLSX.utils.json_to_sheet(usersData);
+            
+            // Define header keys explicitly to ensure order
+            const header = ["Email", "Password", "Nom", "Prénom", "Téléphone", "Société", "Role"]; 
+            XLSX.utils.sheet_to_json(worksheet, { header: header });
+
+            const wscols = [
+                {wch: 30}, // Email
+                {wch: 20}, // Password
+                {wch: 20}, // Nom
+                {wch: 20}, // Prénom
+                {wch: 15}, // Téléphone
+                {wch: 20},  // Société
+                {wch: 10}   // Role (New)
+            ];
+            worksheet['!cols'] = wscols;
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Comptes");
+
+            // --- THIS LINE TRIGGERS THE AUTOMATIC DOWNLOAD (OVERWRITES LOCAL FILE) ---
+            XLSX.writeFile(workbook, "users.xlsx");
+            // ------------------------------------------------
+
+            if (!silent) {
+                showToast("Fichier users.xlsx téléchargé.");
+                userSettings.classList.add('hidden');
+            } else {
+                 // **MESSAGE CLARIFICATION ADDED HERE**
+                 showToast("Inscription réussie! 1) Veuillez accepter le téléchargement du fichier 'users.xlsx'. 2) Pour se connecter، يجب إعادة تحميل (Charger) هذا الملف المحدث في صفحة الدخول.");
+            }
+        }
+
 
         function attemptRegister(event) {
             event.preventDefault();
@@ -473,13 +524,17 @@
                 "Prénom": prenom,
                 "Téléphone": phone,
                 "Société": societe,
-                "Role": "User" // NEW: Default role for registration is 'User'
+                "Role": "User" 
             };
 
             usersData.push(newUser);
             updateUserCountStatus();
             document.getElementById('registerForm').reset();
-            showToast("Inscription réussie! Exportez 'users.xlsx' pour sauvegarder.");
+            
+            // --- NEW: Automatically save and download the updated user file ---
+            saveUsersDataToFile(true); // true for silent mode (custom toast message)
+            // -----------------------------------------------------------------
+            
             showView('login');
         }
 
@@ -499,7 +554,7 @@
                 currentUserName = user['Prénom'] || user['Nom'] || user['Email']; // Store the name for display
 
                 showView('app');
-                showToast(`Bienvenue, ${currentUserName}! Rôle: ${currentUserRole}.`);
+                showToast(`Bienvenue، ${currentUserName}! Rôle: ${currentUserRole}.`);
             } else {
                 showToast("Email ou mot de passe incorrect. Assurez-vous que les comptes sont chargés.");
             }
@@ -520,40 +575,6 @@
             showToast("Déconnexion réussie.");
         }
 
-        function exportUserFile() {
-             if (usersData.length === 0) {
-                showToast("Aucun compte utilisateur à sauvegarder !");
-                return;
-            }
-            if (currentUserRole.toLowerCase() !== 'admin') {
-                showToast("Accès refusé. Seuls les administrateurs peuvent exporter les comptes.");
-                return;
-            }
-            
-            const worksheet = XLSX.utils.json_to_sheet(usersData);
-            
-            // Define header keys explicitly to ensure order
-            const header = ["Email", "Password", "Nom", "Prénom", "Téléphone", "Société", "Role"]; // UPDATED: Added Role
-            XLSX.utils.sheet_to_json(worksheet, { header: header });
-
-            const wscols = [
-                {wch: 30}, // Email
-                {wch: 20}, // Password
-                {wch: 20}, // Nom
-                {wch: 20}, // Prénom
-                {wch: 15}, // Téléphone
-                {wch: 20},  // Société
-                {wch: 10}   // Role (New)
-            ];
-            worksheet['!cols'] = wscols;
-
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Comptes");
-
-            XLSX.writeFile(workbook, "users.xlsx");
-            showToast("Fichier users.xlsx téléchargé.");
-            userSettings.classList.add('hidden');
-        }
 
         // --- ACCESS CONTROL ---
         function checkAccess() {
@@ -767,7 +788,7 @@
             toast.classList.remove('translate-y-20', 'opacity-0');
             setTimeout(() => {
                 toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+            }, 5000); // Increased duration to 5s for instructional messages
         }
 
     </script>
